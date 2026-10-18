@@ -1,4 +1,3 @@
-   
 package bo;
 
 import entity.Student;
@@ -6,164 +5,243 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class ManageStudent {
 
-    private List<Student> list;
+private List<Student> list;
 
-    public ManageStudent() {
-        list = new ArrayList<>();
-    }
+public ManageStudent() {
+    list = new ArrayList<>();
+}
 
-    public List<Student> getList() {
-        return list;
-    }
+public List<Student> getList() {
+    return list;
+}
 
-    public void setList(List<Student> list) {
-        this.list = list;
-    }
+public void setList(List<Student> list) {
+    this.list = (list == null) ? new ArrayList<>() : list;
+}
 
-    public boolean isExisted(Student student) {
-        for (Student students : list) {
-            if (students.getId().equals(student.getId())
-                    && students.getSemester().equals(student.getSemester())
-                    && students.getCourseName().equals(student.getCourseName())) {
-                return true;
-            }
-        }
+public boolean isExisted(Student student) {
+    if (student == null) {
         return false;
     }
 
-    public boolean add(Student student) throws Exception {
-        if (isExisted(student)) {
-            throw new Exception("This record is existed!");
+    for (Student students : list) {
+        if (students.getId() != null
+                && students.getSemester() != null
+                && students.getCourseName() != null
+                && students.getId().equalsIgnoreCase(student.getId())
+                && students.getSemester().equalsIgnoreCase(student.getSemester())
+                && students.getCourseName() == student.getCourseName()) {
+            return true;
         }
-        return list.add(student);
+    }
+    return false;
+}
+
+public boolean add(Student student) throws Exception {
+    if (student == null
+            || student.getId() == null
+            || student.getCourseName() == null) {
+        throw new Exception("Invalid student data!");
     }
 
-//    public boolean delete(String id) throws Exception {
-//        if (list.isEmpty()) {
-//            throw new Exception("List is empty, can not delete");
-//        }
-//        if (!isExisted(student)) {
-//            throw new Exception("This record can not found!");
-//        }
-//        return list.remove(Student);
-//    }
-    public boolean delete(String id) throws Exception {
+    if (isExisted(student)) {
+        throw new Exception("This record already exists!");
+    }
+
+    // Keep the same name for every record belonging to one ID.
+    for (Student existing : list) {
+        if (existing.getId().equalsIgnoreCase(student.getId())) {
+            if (!existing.getStudentName().equalsIgnoreCase(
+                    student.getStudentName())) {
+                throw new Exception(
+                        "This ID already belongs to "
+                        + existing.getStudentName() + "!");
+            }
+        }
+    }
+
+    return list.add(student);
+}
+
+public boolean delete(String id) throws Exception {
     if (list.isEmpty()) {
         throw new Exception("List is empty, cannot delete!");
     }
 
     for (int i = 0; i < list.size(); i++) {
-        if (list.get(i).getId().equalsIgnoreCase(id)) {
+        Student student = list.get(i);
+
+        if (student.getId() != null
+                && student.getId().equalsIgnoreCase(id)) {
             list.remove(i);
-            return true; // Xóa thành công
+            return true;
         }
     }
 
     throw new Exception("Student with ID " + id + " not found!");
 }
 
-    private int getIndexRecord(Student student) {
-        for (int i = 0; i < list.size(); i++) {
-            if (list.get(i).equals(student)) {
-                return i;
-            }
-        }
-        return -1;
+public boolean delete(Student selected) throws Exception {
+    if (selected == null || !list.remove(selected)) {
+        throw new Exception("Selected record cannot be found!");
     }
-
-    public boolean update(Student oldStudentRecord, Student newStudentRecord) throws Exception {
-    if (list.isEmpty()) {
-        throw new Exception("List is empty, can not update");
-    }
-
-    for (Student student : list) {
-        if (student.getId().equals(oldStudentRecord.getId())
-                && student.getSemester().equals(oldStudentRecord.getSemester())
-                && student.getCourseName().equals(oldStudentRecord.getCourseName())) {
-
-            if (isExisted(newStudentRecord) && !oldStudentRecord.equals(newStudentRecord)) {
-                throw new Exception("New record is duplicate!");
-            }
-
-            // Cập nhật thông tin
-            student.setId(newStudentRecord.getId());
-            student.setStudentName(newStudentRecord.getStudentName());
-            student.setSemester(newStudentRecord.getSemester());
-            student.setCourseName(newStudentRecord.getCourseName());
-            return true;
-        }
-    }
-
-    throw new Exception("This record cannot be found!");
+    return true;
 }
 
+private int getIndexRecord(Student student) {
+    for (int i = 0; i < list.size(); i++) {
+        if (list.get(i) == student) {
+            return i;
+        }
+    }
+    return -1;
+}
 
-    public ArrayList<Student> getListStudentById(String id) {
-        ArrayList<Student> result = new ArrayList<>();
-        for (int i = 0; i < list.size(); i++) {
-            if (list.get(i).getId().equalsIgnoreCase(id)) {
-                result.add(list.get(i));
+public boolean update(Student oldStudentRecord,
+        Student newStudentRecord) throws Exception {
+
+    if (list.isEmpty()) {
+        throw new Exception("List is empty, cannot update!");
+    }
+
+    int index = getIndexRecord(oldStudentRecord);
+
+    if (index == -1) {
+        throw new Exception("This record cannot be found!");
+    }
+
+    // An ID must keep its original student name.
+    for (Student existing : list) {
+        if (existing != oldStudentRecord
+                && existing.getId().equalsIgnoreCase(
+                        newStudentRecord.getId())) {
+
+            if (!existing.getStudentName().equalsIgnoreCase(
+                    newStudentRecord.getStudentName())) {
+                throw new Exception(
+                        "This ID already belongs to "
+                        + existing.getStudentName() + "!");
             }
         }
-        return result;
     }
 
-    public ArrayList<Student> getListStudentByName(String name) {
-        ArrayList<Student> result = new ArrayList<>();
-        for (int i = 0; i < list.size(); i++) {
-            if (list.get(i).getStudentName().toLowerCase().contains(name.toLowerCase())) {
-                result.add(list.get(i));
-            }
+    // Check duplicate record, excluding the record being updated.
+    for (Student existing : list) {
+        if (existing != oldStudentRecord
+                && existing.getId().equalsIgnoreCase(
+                        newStudentRecord.getId())
+                && existing.getSemester().equalsIgnoreCase(
+                        newStudentRecord.getSemester())
+                && existing.getCourseName()
+                        == newStudentRecord.getCourseName()) {
+            throw new Exception("New record is duplicate!");
         }
-        return result;
     }
 
-    public void sortStudentsByName() {
-        Collections.sort(list);
+    list.set(index, newStudentRecord);
+    return true;
+}
+
+public ArrayList<Student> getListStudentById(String id) {
+    ArrayList<Student> result = new ArrayList<>();
+
+    for (Student student : list) {
+        if (student.getId() != null
+                && student.getId().equalsIgnoreCase(id)) {
+            result.add(student);
+        }
     }
 
-    @Override
-    public String toString() {
-        if (list.isEmpty()) {
-            return null;
+    return result;
+}
+
+public ArrayList<Student> getListStudentByName(String name) {
+    ArrayList<Student> result = new ArrayList<>();
+
+    for (Student student : list) {
+        if (student.getStudentName() != null
+                && student.getStudentName().toLowerCase()
+                        .contains(name.toLowerCase())) {
+            result.add(student);
         }
-        String str = String.format("|%5s|%15s|%10s|%15s|\n", "No.", "Student Name",
-                "Semester", "Course Name");
-        for (int i = 0; i < list.size(); i++) {
-            str += String.format("|%5s|%15s|%10s|%15s|\n", i + 1,
-                    list.get(i).getStudentName(),
-                    list.get(i).getSemester(),
-                    list.get(i).getCourseName().getLanguage());
-        }
-        return str;
     }
 
-    private HashMap<String, Integer> generateReport() {
-        HashMap<String, Integer> reports = new HashMap<>();
-        for (Student student : list) {
-            String key = student.getId() + "#" + student.getStudentName() + "#" + student.getCourseName().getLanguage();
-            reports.put(key, reports.getOrDefault(key, 0) + 1);
-        }
-        return reports;
+    return result;
+}
+
+public void sortStudentsByName() {
+    Collections.sort(list);
+}
+
+@Override
+public String toString() {
+    if (list.isEmpty()) {
+        return "No student records found!";
     }
 
-    public String report() {
-        if (list.isEmpty()) {
-            return null;
-        }
-        HashMap<String, Integer> reports = generateReport();
-        String str = String.format("|%5s|%15s|%10s|%15s|\n", "No.", "Student Name", "Course", "Total of Course");
-        int count = 1;
-        for (String key : reports.keySet()) {
-            String[] parts = key.split("#");
-            String studentName = parts[1];
-            String course = parts[2];
-            int total = reports.get(key);
-            str += String.format("|%5s|%15s|%10s|%15s|\n", count++, studentName, course, total);
-        }
-        return str;
+    StringBuilder str = new StringBuilder();
+    str.append(String.format("|%5s|%15s|%10s|%15s|%n",
+            "No.", "Student Name", "Semester", "Course Name"));
+
+    for (int i = 0; i < list.size(); i++) {
+        Student student = list.get(i);
+
+        str.append(String.format("|%5s|%15s|%10s|%15s|%n",
+                i + 1,
+                student.getStudentName(),
+                student.getSemester(),
+                student.getCourseName().getLanguage()));
     }
+
+    return str.toString();
+}
+
+private HashMap<String, Integer> generateReport() {
+    HashMap<String, Integer> reports = new HashMap<>();
+
+    for (Student student : list) {
+        String key = student.getId() + "#"
+                + student.getStudentName() + "#"
+                + student.getCourseName().getLanguage();
+
+        reports.put(key, reports.getOrDefault(key, 0) + 1);
+    }
+
+    return reports;
+}
+
+public String report() {
+    if (list.isEmpty()) {
+        return null;
+    }
+
+    HashMap<String, Integer> reports = generateReport();
+    StringBuilder str = new StringBuilder();
+
+    str.append(String.format("|%5s|%15s|%10s|%15s|%n",
+            "No.", "Student Name", "Course", "Total of Course"));
+
+    int count = 1;
+
+    // Sort report keys for stable output.
+    List<String> keys = new ArrayList<>(reports.keySet());
+    Collections.sort(keys);
+
+    for (String key : keys) {
+        String[] parts = key.split("#", -1);
+
+        str.append(String.format("|%5s|%15s|%10s|%15s|%n",
+                count++,
+                parts[1],
+                parts[2],
+                reports.get(key)));
+    }
+
+    return str.toString();
+}
+
 }
