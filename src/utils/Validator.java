@@ -52,15 +52,19 @@ public class Validator {
     }
 
   
-    public static String getString(String messageInfo, String messageError,
-            final String REGEX) {
-        do {
-            System.out.print(messageInfo);
-            String str = SCANNER.nextLine();
-            if (str.matches(REGEX)) {
-                return str;
-            }
-            System.out.println(messageError);
-        } while (true);
-    }
+    
+public static String getString(String messageInfo, String messageError,
+        final String REGEX) {
+    do {
+        System.out.print(messageInfo);
+        String str = SCANNER.nextLine().trim();
+
+        if (!str.isEmpty() && str.matches(REGEX)) {
+            return str;
+        }
+
+        System.out.println(messageError);
+    } while (true);
+}
+
 }
